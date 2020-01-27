@@ -123,3 +123,33 @@ The taker is also requested to provide a valid `oracleData` if the loan oracle r
 The owner of the collateral entry can withdraw all collateral at any time,  the sole condition being that after the end of the transaction, the collateral ratio of the loan must be above or equal to the ratio at the beginning of the transaction.
 
 This mechanism is intended to allow a borrower to re-pay a loan using his locked collateral; this is performed using the `CollateralDebtpayer.sol` contract, which uses a part of the collateral tokens, sells it to a token converter, and uses it to pay the debt totally or partially.
+
+## Collateral Library
+
+The CollateralLib library contains the formulas and conditions to create, balance, and liquidate collaterals. Each collateral is related to a `debt` amount that's not defined in the library, and it's provided on each call that requires it.
+
+### Oracle
+
+The collateral is used as a payment guarantee of an RCN Debt that has to be paid on RCN Tokens (`base`), but the collateral is not required to be made of  `base` tokens. For this reason, each collateral entry references an oracle contract that provides the value of `_amount` (`_token`) in `base` tokens.
+
+#### Ratio (Debt ratio)
+
+The `ratio` (or `debt ratio`) of the collateral is determined by what percentage of the total `debt` is covered by the provided collateral. The value in `base` of the collateral is provided by the oracle.
+
+The total `debt` is not defined in the CollateralLib contract and instead is taken as a parameter. The Collateral contract defines it to be the value provided by `getClosingObligation()` on the loan model.
+
+This value is returned as a Fixed223x32 number; Solidity does not natively support operators for this type, the Fixed223x32 library can be used alternately.
+
+### Balance
+
+The `balance()` method of the CollateralLib library returns how much `collateral` should be used to pay a debt in order for the `ratio` to reach `balanceRatio`. This method is used in the context of a `Ratio Liquidation`.
+
+This method returns an estimated amount, and it's not 100% precise, because it depends on the real liquidation rate, a value that's determined by the auction process.
+
+### Can withdraw
+
+The `canWithdraw()` method defines how much `collateral` can be withdrawn while keeping the collateral ratio above the `liquidationRatio`; this value depends on the `debt` that is provided.
+
+### In Liquidation
+
+A Collateral is considered "in liquidation" when its ratio is below `liquidationRatio`.
